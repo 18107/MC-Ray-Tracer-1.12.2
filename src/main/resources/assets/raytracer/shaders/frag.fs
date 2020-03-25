@@ -366,19 +366,16 @@ bool skipChunk(inout ivec3 current, vec3 nearestCube, inout ivec3 chunkPos, vec3
 }
 //TODO chunkId
 
-int nextCube(inout vec3 nearestCube, inout ivec3 current, inout ivec3 last, inout ivec3 chunkPos,
+int nextCube(inout vec3 nearestCube, inout ivec3 current, inout ivec3 chunkPos,
   inout int chunkId, inout int lastChunkId, vec3 inc, ivec3 iinc, int worldWidth) {
-  //TODO improve direction testing
-  last = current;
   lastChunkId = chunkId;
 
   if (nearestCube.x < nearestCube.y) {
     if (nearestCube.x < nearestCube.z) {
       nearestCube.x += inc.x;
       current.x += iinc.x;
-      if ((current.x&CHUNK_WIDTH) == CHUNK_WIDTH) {
-        current.x &= (CHUNK_WIDTH-1);
-        last.x = current.x - iinc.x;
+      if ((current.x%CHUNK_WIDTH) != current.x) {
+        current.x %= CHUNK_WIDTH;
         chunkPos.x += iinc.x;
         if (chunkPos.x == worldWidth || chunkPos.x == -1) {
           discard;
@@ -389,9 +386,8 @@ int nextCube(inout vec3 nearestCube, inout ivec3 current, inout ivec3 last, inou
     } else {
       nearestCube.z += inc.z;
       current.z += iinc.z;
-      if ((current.z&CHUNK_WIDTH) == CHUNK_WIDTH) {
-        current.z &= (CHUNK_WIDTH-1);
-        last.z = current.z - iinc.z;
+      if ((current.z%CHUNK_WIDTH) != current.z) {
+        current.z %= CHUNK_WIDTH;
         chunkPos.z += iinc.z;
         if (chunkPos.z == worldWidth || chunkPos.z == -1) {
           discard;
@@ -404,9 +400,8 @@ int nextCube(inout vec3 nearestCube, inout ivec3 current, inout ivec3 last, inou
     if (nearestCube.y < nearestCube.z) {
       nearestCube.y += inc.y;
       current.y += iinc.y;
-      if ((current.y&CHUNK_WIDTH) == CHUNK_WIDTH) {
-        current.y &= (CHUNK_WIDTH-1);
-        last.y = current.y - iinc.y;
+      if ((current.y%CHUNK_WIDTH) != current.y) {
+        current.y %= CHUNK_WIDTH;
         chunkPos.y += iinc.y;
         if (chunkPos.y == WORLD_HEIGHT_CHUNKS || chunkPos.y == -1) {
           discard;
@@ -417,9 +412,8 @@ int nextCube(inout vec3 nearestCube, inout ivec3 current, inout ivec3 last, inou
     } else {
       nearestCube.z += inc.z;
       current.z += iinc.z;
-      if ((current.z&CHUNK_WIDTH) == CHUNK_WIDTH) {
-        current.z &= (CHUNK_WIDTH-1);
-        last.z = current.z - iinc.z;
+      if ((current.z%CHUNK_WIDTH) != current.z) {
+        current.z %= CHUNK_WIDTH;
         chunkPos.z += iinc.z;
         if (chunkPos.z == worldWidth || chunkPos.z == -1) {
           discard;
@@ -430,14 +424,6 @@ int nextCube(inout vec3 nearestCube, inout ivec3 current, inout ivec3 last, inou
     }
   }
 
-  //TODO skip empty chunks
-  //if (chunkId == 0) {
-    //bool success = skipChunk(current, nearestCube, chunkPos, dir, pos, inc, iinc, worldWidth);
-    //if (!success) {
-      //return;
-    //}
-  //}
-
   if (chunkId != 0) {
     return blockData[(chunkId-1)*CHUNK_SIZE + current.y*CHUNK_WIDTH*CHUNK_WIDTH + current.z*CHUNK_WIDTH + current.x].id;
   } else {
@@ -446,8 +432,22 @@ int nextCube(inout vec3 nearestCube, inout ivec3 current, inout ivec3 last, inou
 }
 
 //TODO make this redundant
-bool setupDrawBlock(int blockId, int blockRotation, ivec3 current, ivec3 last,
+bool setupDrawBlock(int blockId, int blockRotation, ivec3 current,
   vec3 nearestCube, vec3 inc, ivec3 iinc, int lastChunkId) {
+  ivec3 last = current;
+  if (nearestCube.x-inc.x > nearestCube.y-inc.y) {
+    if (nearestCube.x-inc.x > nearestCube.z-inc.z) {
+      last.x = current.x-iinc.x;
+    } else {
+      last.z = current.z-iinc.z;
+    }
+  } else {
+    if (nearestCube.y-inc.y > nearestCube.z-inc.z) {
+      last.y = current.y-iinc.y;
+    } else {
+      last.z = current.z-iinc.z;
+    }
+  }
   int side;
   vec4 sideVector;
   float texX;
@@ -525,12 +525,11 @@ bool setupDrawBlock(int blockId, int blockRotation, ivec3 current, ivec3 last,
     int rotate = idData[blockId*6*3 + side*3 + 2];
     return setupTraceBlock(voxId, nearestCube, inc, iinc, current, last, rotation[blockRotation]*rotation[rotate]);
   } else {
-    return drawTexture(blockId, side, texVector, blockRotation, /*light*/ 15);
+    return drawTexture(blockId, side, texVector, blockRotation, /*light*/ 15); //TODO
   }
 }
 
 void trace(inout ivec3 current, vec3 nearestCube, vec3 dir, vec3 pos, ivec3 chunkPos, vec3 inc, ivec3 iinc, ivec3 offset) {
-  ivec3 last = current;
   int worldWidth = renderDistance*2+1;
   int chunkId = location[chunkPos.z*worldWidth*WORLD_HEIGHT_CHUNKS + chunkPos.x*WORLD_HEIGHT_CHUNKS + chunkPos.y];
   //TODO if player is above the world
@@ -548,10 +547,10 @@ void trace(inout ivec3 current, vec3 nearestCube, vec3 dir, vec3 pos, ivec3 chun
   while (!blockFound) {
     blockId = 0;
     while (blockId == 0) {
-      blockId = nextCube(nearestCube, current, last, chunkPos, chunkId, lastChunkId, inc, iinc, worldWidth);
-      blockRotation = blockData[(chunkId-1)*CHUNK_SIZE + current.y*CHUNK_WIDTH*CHUNK_WIDTH + current.z*CHUNK_WIDTH + current.x].rotation;
+      blockId = nextCube(nearestCube, current, chunkPos, chunkId, lastChunkId, inc, iinc, worldWidth);
     }
-    blockFound = setupDrawBlock(blockId, blockRotation, current, last, nearestCube, inc, iinc, lastChunkId);
+    blockRotation = blockData[(chunkId-1)*CHUNK_SIZE + current.y*CHUNK_WIDTH*CHUNK_WIDTH + current.z*CHUNK_WIDTH + current.x].rotation;
+    blockFound = setupDrawBlock(blockId, blockRotation, current, nearestCube, inc, iinc, lastChunkId);
   }
 }
 
