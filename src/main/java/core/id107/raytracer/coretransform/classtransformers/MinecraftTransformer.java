@@ -27,10 +27,13 @@ public class MinecraftTransformer extends ClassTransformer {
 	@Override
 	public MethodTransformer[] getMethodTransformers() {
 		MethodTransformer loadWorldTransformer = new MethodTransformer() {
+			
+			@Override
 			public MethodName getMethodName() {
 				return Names.Minecraft_loadWorld;
 			}
 			
+			@Override
 			public void transform(ClassNode classNode, MethodNode method, boolean obfuscated) {
 				CLTLog.info("Found method: " + method.name + " " + method.desc);
 				CLTLog.info("begining at start of method " + getMethodName().debug());

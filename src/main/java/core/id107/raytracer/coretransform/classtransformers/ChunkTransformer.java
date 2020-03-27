@@ -26,10 +26,13 @@ public class ChunkTransformer extends ClassTransformer {
 	@Override
 	public MethodTransformer[] getMethodTransformers() {
 		MethodTransformer transformSetBlockState = new MethodTransformer() {
+			
+			@Override
 			public MethodName getMethodName() {
 				return Names.Chunk_getBlockState;
 			}
 			
+			@Override
 			public void transform(ClassNode classNode, MethodNode method, boolean obfuscated) {
 				CLTLog.info("Found method: " + method.name + " " + method.desc);
 				InsnList toInsert = new InsnList();

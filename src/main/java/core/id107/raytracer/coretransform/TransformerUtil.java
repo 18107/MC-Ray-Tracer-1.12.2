@@ -7,6 +7,8 @@ import net.minecraftforge.common.MinecraftForge;
 
 public class TransformerUtil {
 
+	public static boolean doRasterRender = false;
+	
 	/**
 	 * Called from asm modified code:
 	 * {@link net.minecraft.client.Minecraft#loadWorld() loadWorld}

@@ -12,7 +12,7 @@ public abstract class ClassTransformer {
 	
 	static {
 		//Put all of the class transformers here
-		transformers = new ClassTransformer[] {new ChunkTransformer(), new MinecraftTransformer()};
+		transformers = new ClassTransformer[] {new ChunkTransformer(),new EntityRendererTransformer() , new MinecraftTransformer()};
 	}
 	
 	public abstract ClassName getClassName();
