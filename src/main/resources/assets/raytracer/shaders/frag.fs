@@ -209,35 +209,6 @@ bool traceBlock(int id, vec3 nearestVoxel, ivec4 currentVoxel, mat4 rotate, vec3
   }
 }
 
-bool setupTraceFirstBlock() { //TODO
-  return false;
-  //ivec4 currentVoxel = ivec4(floor(mod(pos,1)),1);
-
-  /*int side = 0;
-  vec4 sideVector = vec4(0,0,-1,0)*rotation[blockRotation];
-  if (sideVector.x == 1)
-    side = 0;
-  else if (sideVector.x == -1)
-    side = 1;
-  else if (sideVector.y == 1)
-    side = 2;
-  else if (sideVector.y == -1)
-    side = 3;
-  else if (sideVector.z == 1)
-    side = 4;
-  else
-    side = 5;
-
-  bool isVoxel = bool(idData[blockId*6*3 + side*3]);
-  if (!isVoxel) {
-    return false;
-  }
-  int voxId = idData[blockId*6*3 + side*3 + 1];
-  int rotate = idData[blockId*6*3 + side*3 + 2];*/
-
-  //TODO setupTraceBlock
-}
-
 bool setupTraceBlock(int id, vec3 nearestCube, vec3 inc, ivec3 iinc, ivec3 current, ivec3 last, mat4 rotate) {
   vec3 nearestVoxel;
   ivec4 currentVoxel;
@@ -338,33 +309,6 @@ bool drawTexture(int blockId, int side, vec4 texVector, int blockRotation, int l
   }
   return true;
 }
-
-//returns true if successful
-bool skipChunk(inout ivec3 current, vec3 nearestCube, inout ivec3 chunkPos, vec3 dir, vec3 pos, vec3 inc, ivec3 iinc, int worldWidth) {
-  //TODO avoid magic numbers
-  ivec3 jump = (iinc == 1 ? 16 - current : current + 1);
-  vec3 jumpDist = (jump-1)*inc;
-  if (nearestCube.x + jumpDist.x < nearestCube.y + jumpDist.y) {
-    if (nearestCube.x + jumpDist.x < nearestCube.z + jumpDist.z) {
-      chunkPos.x += iinc.x;
-      if (chunkPos.x == worldWidth || chunkPos.x == -1) {
-        return false;
-      }
-      nearestCube.x += jumpDist.x + inc.x;
-      current.x += jump.x*iinc.x;
-      //TODO nearestCube.yz, current.yz
-      int temp = int(floor(dir.y*(current.x+16*(chunkPos.x-renderDistance)-pos.x)/dir.x + pos.y)) % 16;
-      current.y += temp*iinc.y;
-      nearestCube.y += temp*inc.y;
-      temp = int(floor(dir.z*(current.x+16*(chunkPos.x-renderDistance)-pos.x)/dir.x + pos.z)) % 16;
-      current.z += temp*iinc.z;
-      nearestCube.z += temp*inc.z;
-      return true;
-    }
-  }
-  return false; //TODO remove
-}
-//TODO chunkId
 
 int nextCube(inout vec3 nearestCube, inout ivec3 current, inout ivec3 chunkPos,
   inout int chunkId, inout int lastChunkId, vec3 inc, ivec3 iinc, int worldWidth) {
@@ -529,7 +473,7 @@ bool setupDrawBlock(int blockId, int blockRotation, ivec3 current,
   }
 }
 
-void trace(inout ivec3 current, vec3 nearestCube, vec3 dir, vec3 pos, ivec3 chunkPos, vec3 inc, ivec3 iinc, ivec3 offset) {
+void trace(ivec3 current, vec3 nearestCube, vec3 dir, ivec3 chunkPos, vec3 inc, ivec3 iinc) {
   int worldWidth = renderDistance*2+1;
   int chunkId = location[chunkPos.z*worldWidth*WORLD_HEIGHT_CHUNKS + chunkPos.x*WORLD_HEIGHT_CHUNKS + chunkPos.y];
   //TODO if player is above the world
@@ -542,7 +486,7 @@ void trace(inout ivec3 current, vec3 nearestCube, vec3 dir, vec3 pos, ivec3 chun
   }
   bool blockFound = false;
   if (blockId != 0) {
-    blockFound = setupTraceFirstBlock(); //TODO
+    //TODO trace first block
   }
   while (!blockFound) {
     blockId = 0;
@@ -564,7 +508,6 @@ void main(void) {
   vec3 point = vec3(cameraPos);
   ivec3 chunkPos = ivec3(renderDistance, chunkHeight, renderDistance);
 
-  ivec3 offset = ivec3(0, 0, 0);
   //3D
   if (stereoscopic3d) {
     if (spherical) {
@@ -589,17 +532,13 @@ void main(void) {
     ivec3 pointFloor = ivec3(floor(point/CHUNK_WIDTH));
     if (cameraFloor.x > pointFloor.x) {
       chunkPos.x--;
-      offset.x = 1;
     } else if (cameraFloor.x < pointFloor.x) {
       chunkPos.x++;
-      offset.x = -1;
     }
     if (cameraFloor.z > pointFloor.z) {
       chunkPos.z--;
-      offset.z = 1;
     } else if (cameraFloor.z < pointFloor.z) {
       chunkPos.z++;
-      offset.z = -1;
     }
   }
 
@@ -649,5 +588,5 @@ void main(void) {
       iinc.z = -1;
   }
 
-  trace(current, nearestCube, dir, mod(point, CHUNK_WIDTH), chunkPos, inc, iinc, offset);
+  trace(current, nearestCube, dir, chunkPos, inc, iinc);
 }
