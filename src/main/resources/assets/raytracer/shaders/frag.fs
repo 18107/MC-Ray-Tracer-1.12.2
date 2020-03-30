@@ -209,6 +209,83 @@ bool traceBlock(int id, vec3 nearestVoxel, ivec4 currentVoxel, mat4 rotate, vec3
   }
 }
 
+bool setupTraceFirstBlock(int blockId, vec3 inc, ivec3 iinc, vec3 point, int blockRotation) {
+  ivec4 currentVoxel = ivec4(floor(mod(point, 1)*TEXTURE_RESOLUTION), TEXTURE_RESOLUTION-1);
+
+  vec3 dist;
+  if (iinc.x < 0) {
+    dist.x = abs(floor(point.x*TEXTURE_RESOLUTION)/TEXTURE_RESOLUTION - point.x);
+  } else {
+    dist.x = abs(ceil(point.x*TEXTURE_RESOLUTION)/TEXTURE_RESOLUTION - point.x);
+  }
+  if (iinc.y < 0) {
+    dist.y = abs(floor(point.y*TEXTURE_RESOLUTION)/TEXTURE_RESOLUTION - point.y);
+  } else {
+    dist.y = abs(ceil(point.y*TEXTURE_RESOLUTION)/TEXTURE_RESOLUTION - point.y);
+  }
+  if (iinc.z < 0) {
+    dist.z = abs(floor(point.z*TEXTURE_RESOLUTION)/TEXTURE_RESOLUTION - point.z);
+  } else {
+    dist.z = abs(ceil(point.z*TEXTURE_RESOLUTION)/TEXTURE_RESOLUTION - point.z);
+  }
+
+  vec3 nearestVoxel = abs(dist*inc);
+
+  vec3 nearestSide = abs(mod(point, 1) - 0.5);
+  int side;
+  ivec4 sideVector;
+  if (point.x > point.y) {
+    if (point.x > point.z) {
+      if (mod(point.x, 1) > 0.5) {
+        side = 0;
+      } else {
+        side = 1;
+      }
+    } else {
+      if (mod(point.z, 1) > 0.5) {
+        side = 4;
+      } else {
+        side = 5;
+      }
+    }
+  } else {
+    if (point.y > point.z) {
+      if (mod(point.y, 1) > 0.5) {
+        side = 2;
+      } else {
+        side = 3;
+      }
+    } else {
+      if (mod(point.z, 1) > 0.5) {
+        side = 4;
+      } else {
+        side = 5;
+      }
+    }
+  }
+
+  bool isVoxel = bool(idData[blockId*6*3 + side*3]);
+  if (isVoxel) {
+    int voxId = idData[blockId*6*3 + side*3 + 1];
+    int iRotate = idData[blockId*6*3 + side*3 + 2];
+    mat4 rotate = rotation[blockRotation]*rotation[iRotate];
+
+    ivec4 rotated = ivec4(currentVoxel*rotate);
+    color = voxelColor[voxId*TEXTURE_RESOLUTION*TEXTURE_RESOLUTION*TEXTURE_RESOLUTION +
+        rotated.z*TEXTURE_RESOLUTION*TEXTURE_RESOLUTION +
+        rotated.y*TEXTURE_RESOLUTION + rotated.x];
+    if (color.a >= 0.5) {
+      return true;
+    }
+
+    //trace voxel
+    return traceBlock(voxId, nearestVoxel, currentVoxel, rotate, inc/TEXTURE_RESOLUTION, iinc);
+  } else {
+    color = vec4(0, 0, 0, 1);
+    return true;
+  }
+}
+
 bool setupTraceBlock(int id, vec3 nearestCube, vec3 inc, ivec3 iinc, ivec3 current, ivec3 last, mat4 rotate) {
   vec3 nearestVoxel;
   ivec4 currentVoxel;
@@ -473,7 +550,7 @@ bool setupDrawBlock(int blockId, int blockRotation, ivec3 current,
   }
 }
 
-void trace(ivec3 current, vec3 nearestCube, vec3 dir, ivec3 chunkPos, vec3 inc, ivec3 iinc) {
+void trace(ivec3 current, vec3 nearestCube, vec3 point, vec3 dir, ivec3 chunkPos, vec3 inc, ivec3 iinc) {
   int worldWidth = renderDistance*2+1;
   int chunkId = location[chunkPos.z*worldWidth*WORLD_HEIGHT_CHUNKS + chunkPos.x*WORLD_HEIGHT_CHUNKS + chunkPos.y];
   //TODO if player is above the world
@@ -486,7 +563,7 @@ void trace(ivec3 current, vec3 nearestCube, vec3 dir, ivec3 chunkPos, vec3 inc, 
   }
   bool blockFound = false;
   if (blockId != 0) {
-    //TODO trace first block
+    blockFound = setupTraceFirstBlock(blockId, inc, iinc, point, blockRotation);
   }
   while (!blockFound) {
     blockId = 0;
@@ -588,5 +665,5 @@ void main(void) {
       iinc.z = -1;
   }
 
-  trace(current, nearestCube, dir, chunkPos, inc, iinc);
+  trace(current, nearestCube, point, dir, chunkPos, inc, iinc);
 }
