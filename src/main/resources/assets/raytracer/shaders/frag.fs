@@ -234,8 +234,8 @@ bool setupTraceFirstBlock(int blockId, vec3 inc, ivec3 iinc, vec3 point, int blo
   vec3 nearestSide = abs(mod(point, 1) - 0.5);
   int side;
   ivec4 sideVector;
-  if (point.x > point.y) {
-    if (point.x > point.z) {
+  if (nearestSide.x > nearestSide.y) {
+    if (nearestSide.x > nearestSide.z) {
       if (mod(point.x, 1) > 0.5) {
         side = 0;
       } else {
@@ -249,7 +249,7 @@ bool setupTraceFirstBlock(int blockId, vec3 inc, ivec3 iinc, vec3 point, int blo
       }
     }
   } else {
-    if (point.y > point.z) {
+    if (nearestSide.y > nearestSide.z) {
       if (mod(point.y, 1) > 0.5) {
         side = 2;
       } else {
@@ -270,19 +270,10 @@ bool setupTraceFirstBlock(int blockId, vec3 inc, ivec3 iinc, vec3 point, int blo
     int iRotate = idData[blockId*6*3 + side*3 + 2];
     mat4 rotate = rotation[blockRotation]*rotation[iRotate];
 
-    ivec4 rotated = ivec4(currentVoxel*rotate);
-    color = voxelColor[voxId*TEXTURE_RESOLUTION*TEXTURE_RESOLUTION*TEXTURE_RESOLUTION +
-        rotated.z*TEXTURE_RESOLUTION*TEXTURE_RESOLUTION +
-        rotated.y*TEXTURE_RESOLUTION + rotated.x];
-    if (color.a >= 0.5) {
-      return true;
-    }
-
     //trace voxel
     return traceBlock(voxId, nearestVoxel, currentVoxel, rotate, inc/TEXTURE_RESOLUTION, iinc);
   } else {
-    color = vec4(0, 0, 0, 1);
-    return true;
+    return false;
   }
 }
 
